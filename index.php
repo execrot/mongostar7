@@ -59,17 +59,6 @@ class UserMap extends \MongoStar\Map
     }
 }
 
-//$users = [];
-//
-//for ($i=0; $i<10; $i++) {
-//
-//    $users[$i] = [
-//        'id' => $i +1,
-//        'name' => 'edward#'.($i+1)
-//    ];
-//}
-
-
 MongoStar\Config::setConfig([
     'driver'   => 'mongodb',
     'server'   => 'mongodb://localhost:27017',
@@ -78,11 +67,22 @@ MongoStar\Config::setConfig([
     'password' => 'password',
 ]);
 
-$users = User::fetchAll();
+// $users = [];
 
-foreach ($users as $user)
-{
+//for ($i=0; $i<10; $i++) {
+//
+//    $user = new User();
+//
+//    $user->name = 'edward#'.($i+1);
+//    $user->age = $i +1;
+//
+//    $user->save();
+//}
 
-    var_dump($user->toArray());
-    die();
-}
+
+
+
+//User::remove();
+
+$user = User::fetchOne();
+$user->remove();

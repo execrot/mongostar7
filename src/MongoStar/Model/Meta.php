@@ -150,7 +150,7 @@ final class Meta
                 $propertyLine = array_values(array_filter(explode(' ', $line)));
 
                 $property = new Meta\Property();
-                
+
                 if (count($propertyLine) < 3) {
                     throw new Meta\Exception\PropertyIsSetIncorrectly($model, $line);
                 }

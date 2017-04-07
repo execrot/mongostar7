@@ -59,12 +59,6 @@ interface ModelInterface
     public static function update(array $cond = [], array $data = []);
 
     /**
-     * @param array $cond
-     * @return int
-     */
-    public static function remove(array $cond = []);
-
-    /**
      * @return array
      */
     public function getData();

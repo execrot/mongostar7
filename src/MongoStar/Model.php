@@ -161,15 +161,6 @@ class Model implements Model\ModelInterface
     }
 
     /**
-     * @param array $cond
-     * @return int
-     */
-    public static function remove(array $cond = [])
-    {
-        return self::__callStatic(__FUNCTION__, func_get_args());
-    }
-
-    /**
      * @return array
      */
     public function getData()
