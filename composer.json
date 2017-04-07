@@ -1,0 +1,7 @@
+{
+  "name": "mongostar/php7",
+  "type": "library",
+  "autoload": {
+    "psr-0": { "MongoStar": "src/" }
+  }
+}
