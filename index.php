@@ -23,7 +23,7 @@ class User extends \MongoStar\Model {}
  *
  * @collection Country
  *
- * @property string    $id  identifier
+ * @property string    $id
  * @property string    $name Country name
  * @property City    $city City Id
  */
