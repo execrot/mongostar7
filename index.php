@@ -49,14 +49,6 @@ class UserMap extends \MongoStar\Map
             'country' => 't-country'
         ];
     }
-
-    public function getCountry()
-    {
-        /** @var \User $user */
-        $user = $this->getRow();
-
-        return $user;
-    }
 }
 
 MongoStar\Config::setConfig([
@@ -85,4 +77,5 @@ MongoStar\Config::setConfig([
 //User::remove();
 
 $user = User::fetchOne();
-$user->remove();
+
+var_dump(UserMap::execute($user)->toArray());

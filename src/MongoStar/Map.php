@@ -171,14 +171,13 @@ abstract class Map implements Map\MapInterface, \Iterator
      */
     public function toArray() : array
     {
+        if ($this->_isSingleData()) {
+            return $this->current();
+        }
+
         $arrayData = [];
 
         foreach ($this as $dataRow) {
-
-            if ($this->_isSingleData()) {
-                return $dataRow;
-            }
-
             $arrayData[] = $dataRow;
         }
 
