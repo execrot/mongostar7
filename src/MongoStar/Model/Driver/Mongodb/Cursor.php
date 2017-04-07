@@ -53,7 +53,7 @@ class Cursor implements \MongoStar\Model\Driver\CursorInterface,  \Iterator
 
             if ($propertyName == 'id') {
                 $propertyName = '_id';
-                $value = (string)$data[$propertyName];
+                $value = $data[$propertyName]['$oid'];
             }
             else {
                 $value = isset($data[$propertyName]) ? $data[$propertyName] : null;

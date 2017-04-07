@@ -151,8 +151,7 @@ class Mongodb implements DriverInterface
 
         $cursor = $manager->executeQuery($collectionNamespace, $query);
 
-        $data = $cursor->toArray();
-        unset($cursor);
+        $data = json_decode(json_encode($cursor->toArray()), true);
 
         if (count($data) == 0) {
             return null;
@@ -203,7 +202,8 @@ class Mongodb implements DriverInterface
 
         $cursor = self::getManager()->executeQuery($this->getCollectionNamespace(), $query);
 
-        $data = $cursor->toArray();
+        $data = json_decode(json_encode($cursor->toArray()), true);
+
         return new Mongodb\Cursor($this->getModel(), $data);
     }
 
@@ -265,8 +265,11 @@ class Mongodb implements DriverInterface
      */
     private function _replaceIdToObjectId(array $cond = []) : array
     {
-        if (!empty($cond['id'])) {
-            $cond['_id'] = new \MongoDB\BSON\ObjectID($cond['id']);
+        if (array_key_exists('id', $cond)) {
+
+            $cond['_id'] = new \MongoDB\BSON\ObjectID(
+                !empty($cond['id']) ? $cond['id'] : null
+            );
             unset($cond['id']);
         }
 

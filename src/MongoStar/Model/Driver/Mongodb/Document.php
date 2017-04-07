@@ -58,7 +58,7 @@ class Document implements \MongoStar\Model\Driver\DocumentInterface
             foreach ($this->getModel()->getMeta()->getProperties() as $property) {
 
                 if (isset($data[$property->getName()])) {
-                    $this->_data[$property->getName()] = $data[$property->getName()];
+                    $this->__set($property->getName(), $data[$property->getName()]);
                 }
             }
 
@@ -149,6 +149,11 @@ class Document implements \MongoStar\Model\Driver\DocumentInterface
 
                 if (gettype($value) == 'object') {
 
+                    if (($value instanceof \stdClass)) {
+                        $this->_data[$name] = (array)$value;
+                        return;
+                    }
+
                     if (get_class($value) == $property->getType()) {
                         $this->_data[$name] = $value;
                         return;
@@ -160,10 +165,28 @@ class Document implements \MongoStar\Model\Driver\DocumentInterface
                     return;
                 }
 
-                /**
-                 * Зайоб какойто, int у него блять integer
-                 */
-                else if (gettype($value) == 'integer' && $property->getType() == 'int') {
+                else if (is_scalar($value)) {
+
+                    if ($property->getType() == 'string') {
+                        $value = strval($value);
+                    }
+
+                    else if ($property->getType() == 'float') {
+                        $value = floatval($value);
+                    }
+
+                    else if ($property->getType() == 'double') {
+                        $value = doubleval($value);
+                    }
+
+                    else if ($property->getType() == 'boolean' || $property->getType() == 'bool') {
+                        $value = boolval($value);
+                    }
+
+                    else if ($property->getType() == 'int' || $property->getType() == 'integer' ) {
+                        $value = intval($value);
+                    }
+
                     $this->_data[$name] = $value;
                     return;
                 }
