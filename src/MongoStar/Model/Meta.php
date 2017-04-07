@@ -141,7 +141,7 @@ final class Meta
         foreach ($docblock as $line) {
 
             if (substr($line, 0, strlen(self::ID_COLLECTION)) == self::ID_COLLECTION) {
-                $this->_collection  = strtolower(trim(str_replace(self::ID_COLLECTION, null, $line)));
+                $this->_collection  = ucfirst(strtolower(trim(str_replace(self::ID_COLLECTION, null, $line))));
                 continue;
             }
 
