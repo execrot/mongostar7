@@ -127,7 +127,7 @@ class Document implements \MongoStar\Model\Driver\DocumentInterface
             }
         }
 
-        throw new \MongoStar\Model\Exception\PropertyWasNotFound(static::class, $name);
+        throw new \MongoStar\Model\Exception\PropertyWasNotFound($this->getModel()->getMeta()->getCollection(), $name);
     }
 
     /**
@@ -139,10 +139,6 @@ class Document implements \MongoStar\Model\Driver\DocumentInterface
      */
     public function __set(string $name, $value)
     {
-        if (!$value) {
-            return;
-        }
-
         foreach ($this->getModel()->getMeta()->getProperties() as $property) {
 
             if ($property->getName() == $name) {
@@ -162,6 +158,11 @@ class Document implements \MongoStar\Model\Driver\DocumentInterface
 
                 else if (gettype($value) == $property->getType()) {
                     $this->_data[$name] = $value;
+                    return;
+                }
+
+                else if ($value == null) {
+                    $this->_data[$name] = null;
                     return;
                 }
 
@@ -199,11 +200,16 @@ class Document implements \MongoStar\Model\Driver\DocumentInterface
                     return;
                 }
 
-                throw new \MongoStar\Model\Exception\PropertyHasDifferentType(static::class, $property->getName(), $property->getType(), gettype($value));
+                throw new \MongoStar\Model\Exception\PropertyHasDifferentType(
+                    $this->getModel()->getMeta()->getCollection(),
+                    $property->getName(),
+                    $property->getType(),
+                    gettype($value)
+                );
             }
         }
 
-        throw new \MongoStar\Model\Exception\PropertyWasNotFound(static::class, $name);
+        throw new \MongoStar\Model\Exception\PropertyWasNotFound($this->getModel()->getMeta()->getCollection(), $name);
     }
 
     /**

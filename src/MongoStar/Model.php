@@ -233,7 +233,7 @@ class Model implements Model\ModelInterface
             return call_user_func_array($method, $args);
         }
 
-        throw new Model\Exception\CallUndefinedMethod(static::class, $methodName);
+        throw new Model\Exception\CallUndefinedMethod($this->getMeta()->getCollection(), $methodName);
     }
 
     /**
