@@ -8,7 +8,7 @@ namespace MongoStar;
  * Class Model
  * @package MongoStar
  */
-class Model implements Model\ModelInterface
+class Model implements Model\ModelInterface, \ArrayAccess
 {
     /**
      * @var Model\Meta
@@ -16,9 +16,14 @@ class Model implements Model\ModelInterface
     private $_meta = null;
 
     /**
-     * @var Model\Driver\DocumentInterface
+     * @var Model\Driver\DocumentAbstract
      */
     private $_document = null;
+
+    /**
+     * @var Model\Driver\DocumentAbstract
+     */
+    private static $_driverClassName = null;
 
     /**
      * Model constructor.
@@ -42,7 +47,7 @@ class Model implements Model\ModelInterface
     }
 
     /**
-     * @return Model\Driver\DocumentInterface
+     * @return Model\Driver\DocumentAbstract
      */
     public function getDocument()
     {
@@ -57,14 +62,46 @@ class Model implements Model\ModelInterface
     }
 
     /**
-     * @return Model\Driver\DriverInterface
+     * @return Model\Driver\DriverAbstract
+     *
+     * @throws Model\Exception\DriverClassDoesNotExists
+     * @throws Model\Exception\DriverClassDoesNotExtendsFromDriverAbstract
      */
-    public static function getDriver() : Model\Driver\DriverInterface
+    public static function getDriver() : Model\Driver\DriverAbstract
     {
-        $driver = Config::getConfig()['driver'];
-        $driverClassName = '\MongoStar\\Model\\Driver\\' . ucfirst($driver);
+        if (!empty(self::$_driverClassName)) {
+            $driverClassName = self::$_driverClassName;
+        }
+        else {
+            $driver = Config::getConfig()['driver'];
+            $driverClassName = '\MongoStar\\Model\\Driver\\' . ucfirst($driver) . '\\Driver';
+        }
+
+        if (!class_exists($driverClassName)) {
+            throw new Model\Exception\DriverClassDoesNotExists($driverClassName);
+        }
+
+        if (!is_subclass_of($driverClassName, '\\MongoStar\\Model\\Driver\\DriverAbstract')) {
+            throw new Model\Exception\DriverClassDoesNotExtendsFromDriverAbstract($driverClassName);
+        }
 
         return new $driverClassName();
+    }
+
+    /**
+     * @param Model\Driver\DriverAbstract $class
+     */
+    public static function setDriver(Model\Driver\DriverAbstract $class)
+    {
+        self::$_driverClassName = get_class($class);
+    }
+
+    /**
+     * @return string
+     */
+    public function getModelClassName() : string
+    {
+        return get_class($this);
     }
 
     /**
@@ -95,47 +132,83 @@ class Model implements Model\ModelInterface
     }
 
     /**
-     * @param array $cond
-     * @param array $sort
+     * @param mixed $offset
+     * @return bool
+     */
+    public function offsetExists($offset)
+    {
+        return $this->getDocument()->offsetExists($offset);
+    }
+
+    /**
+     * @param mixed $offset
+     * @return mixed
+     */
+    public function offsetGet($offset)
+    {
+        return $this->getDocument()->offsetGet($offset);
+    }
+
+    /**
+     * @param mixed $offset
+     * @param mixed $value
+     */
+    public function offsetSet($offset, $value)
+    {
+        $this->getDocument()->offsetSet($offset, $value);
+    }
+
+    /**
+     * @param mixed $offset
+     */
+    public function offsetUnset($offset)
+    {
+        $this->getDocument()->offsetUnset($offset);
+    }
+
+    /**
+     * @param array|string|null $cond
+     * @param array|string|null $sort
+     *
      * @param int|null $count
      * @param int|null $offset
      *
      * @return array|\MongoStar\Model
      */
-    public static function fetchAll(array $cond = [], array $sort = [], int $count = null, int $offset = null)
+    public static function fetchAll($cond = null, $sort = null, int $count = null, int $offset = null)
     {
         return self::__callStatic(__FUNCTION__, func_get_args());
     }
 
     /**
-     * @param array $cond
-     * @param array $sort
+     * @param array|string|null $cond
+     * @param array|string|null $sort
      *
      * @return null|\MongoStar\Model
      */
-    public static function fetchOne(array $cond = [], array $sort = [])
+    public static function fetchOne($cond = null, $sort = null)
     {
         return self::__callStatic(__FUNCTION__, func_get_args());
     }
 
     /**
-     * @param array $cond
-     * @param array $sort
+     * @param array|string|null $cond
+     * @param array|string|null $sort
      * @param int|null $count
      * @param int|null $offset
      *
      * @return \MongoStar\Model
      */
-    public static function fetchObject(array $cond = [], array $sort = [], int $count = null, int $offset = null)
+    public static function fetchObject($cond = null, $sort = null, int $count = null, int $offset = null)
     {
         return self::__callStatic(__FUNCTION__, func_get_args());
     }
 
     /**
-     * @param array $cond
+     * @param array|string|null $cond
      * @return int
      */
-    public static function count(array $cond = [])
+    public static function count($cond = null)
     {
         return self::__callStatic(__FUNCTION__, func_get_args());
     }
@@ -150,12 +223,12 @@ class Model implements Model\ModelInterface
     }
 
     /**
-     * @param array $cond
+     * @param array|string|null $cond
      * @param array $data
      *
      * @return int
      */
-    public static function update(array $cond = [], array $data = [])
+    public static function update($cond = null, array $data = [])
     {
         return self::__callStatic(__FUNCTION__, func_get_args());
     }
@@ -190,17 +263,7 @@ class Model implements Model\ModelInterface
      */
     public function toArray() : array
     {
-        if ($this->_document) {
-            return $this->_document->toArray();
-        }
-
-        $props = [];
-
-        foreach ($this->getMeta()->getProperties() as $property) {
-            $props[$property->getName()] = null;
-        }
-
-        return $props;
+        return $this->getDocument()->toArray();
     }
 
     /**

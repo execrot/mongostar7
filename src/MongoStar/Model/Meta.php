@@ -12,6 +12,7 @@ final class Meta
 {
     const ID_COLLECTION = '@collection';
     const ID_PROPERTY   = '@property';
+    const ID_PRIMARY   = '@primary';
 
     /**
      * @var array
@@ -22,6 +23,11 @@ final class Meta
      * @var string
      */
     private $_collection = null;
+
+    /**
+     * @var string
+     */
+    private $_primary = 'id';
 
     /**
      * @var array
@@ -35,9 +41,9 @@ final class Meta
 
     /**
      * Meta constructor.
-     * @param ModelInterface $model
+     * @param \MongoStar\Model $model
      */
-    public function __construct(ModelInterface $model)
+    public function __construct(\MongoStar\Model $model)
     {
         $this->_modelClassName = get_class($model);
 
@@ -46,6 +52,7 @@ final class Meta
         }
         else {
             $this->_collection = self::$_cache[$this->_modelClassName]['collection'];
+            $this->_primary    = self::$_cache[$this->_modelClassName]['primary'];
             $this->_properties = self::$_cache[$this->_modelClassName]['properties'];
         }
     }
@@ -64,6 +71,22 @@ final class Meta
     public function setCollection(string $collection)
     {
         $this->_collection = $collection;
+    }
+
+    /**
+     * @return string
+     */
+    public function getPrimary(): string
+    {
+        return $this->_primary;
+    }
+
+    /**
+     * @param string $primary
+     */
+    public function setPrimary(string $primary)
+    {
+        $this->_primary = $primary;
     }
 
     /**
@@ -108,16 +131,18 @@ final class Meta
                 }
             }
         }
+
+        return false;
     }
 
     /**
-     * @param ModelInterface $model
+     * @param \MongoStar\Model $model
      *
      * @throws Meta\Exception\CollectionCantBeWithoutProperties
      * @throws Meta\Exception\CollectionNameDoesNotExists
      * @throws Meta\Exception\PropertyIsSetIncorrectly
      */
-    private function _parse(ModelInterface $model)
+    private function _parse(\MongoStar\Model $model)
     {
 
         $reflection = new \ReflectionClass($model);
@@ -142,6 +167,11 @@ final class Meta
 
             if (substr($line, 0, strlen(self::ID_COLLECTION)) == self::ID_COLLECTION) {
                 $this->_collection  = ucfirst(strtolower(trim(str_replace(self::ID_COLLECTION, null, $line))));
+                continue;
+            }
+
+            if (substr($line, 0, strlen(self::ID_PRIMARY)) == self::ID_PRIMARY) {
+                $this->_primary  = trim(str_replace(self::ID_PRIMARY, null, $line));
                 continue;
             }
 
@@ -172,7 +202,8 @@ final class Meta
 
         self::$_cache[$this->_modelClassName] = [
             'collection' => $this->_collection,
-            'properties' => $this->_properties
+            'properties' => $this->_properties,
+            'primary'    => $this->_primary
         ];
     }
 }

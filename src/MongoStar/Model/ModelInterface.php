@@ -11,38 +11,40 @@ namespace MongoStar\Model;
 interface ModelInterface
 {
     /**
-     * @param array $cond
-     * @param array $sort
+     * @param array|string|null $cond
+     * @param array|string|null $sort
+     *
      * @param int|null $count
      * @param int|null $offset
      *
      * @return array|\MongoStar\Model
      */
-    public static function fetchAll(array $cond = [], array $sort = [], int $count = null, int $offset = null);
+    public static function fetchAll($cond = null, $sort = null, int $count = null, int $offset = null);
 
     /**
-     * @param array $cond
-     * @param array $sort
+     * @param array|string|null $cond
+     * @param array|string|null $sort
      *
      * @return null|\MongoStar\Model
      */
-    public static function fetchOne(array $cond = [], array $sort = []);
+    public static function fetchOne($cond = null, $sort = null);
 
     /**
-     * @param array $cond
-     * @param array $sort
+     * @param array|string|null $cond
+     * @param array|string|null $sort
+     *
      * @param int|null $count
      * @param int|null $offset
      *
      * @return \MongoStar\Model
      */
-    public static function fetchObject(array $cond = [], array $sort = [], int $count = null, int $offset = null);
+    public static function fetchObject($cond = null, $sort = null, int $count = null, int $offset = null);
 
     /**
-     * @param array $cond
+     * @param array|string|null $cond
      * @return int
      */
-    public static function count(array $cond = []);
+    public static function count($cond = null);
 
     /**
      * @param array $data
@@ -51,12 +53,12 @@ interface ModelInterface
     public static function batchInsert(array $data = []);
 
     /**
-     * @param array $cond
+     * @param array|string|null $cond
      * @param array $data
      *
      * @return int
      */
-    public static function update(array $cond = [], array $data = []);
+    public static function update($cond = null, array $data = []);
 
     /**
      * @return array

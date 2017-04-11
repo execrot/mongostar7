@@ -2,16 +2,16 @@
 
 declare( strict_types = 1 );
 
-namespace MongoStar\Model;
+namespace MongoStar;
 
 /**
  * Class Paginator
- * @package MongoStar\Model
+ * @package MongoStar
  */
 class Paginator implements \Zend_Paginator_Adapter_Interface
 {
     /**
-     * @var ModelInterface |null
+     * @var Model |null
      */
     private $_model = null;
 
@@ -28,17 +28,17 @@ class Paginator implements \Zend_Paginator_Adapter_Interface
     /**
      * If this parameter will be specify (by calling setDataMapper) data will be mapped
      *
-     * @var \MongoStar\Map\MapInterface
+     * @var Map
      */
     private $_map = null;
 
     /**
      * Paginator constructor.
-     * @param ModelInterface $model
-     * @param array $cond
-     * @param array $sort
+     * @param Model $model
+     * @param array|string|null $cond
+     * @param array|string|null $sort
      */
-    public function __construct (ModelInterface $model, array $cond = [], array $sort = [])
+    public function __construct (Model $model, $cond = null, $sort = null)
     {
         $this->_model = $model;
 
@@ -51,11 +51,11 @@ class Paginator implements \Zend_Paginator_Adapter_Interface
      *
      * @param int $offset
      * @param int $limit
-     * @return array|ModelInterface
+     * @return array|Model
      */
     public function getItems ($offset, $limit)
     {
-        /** @var ModelInterface $modelClassName */
+        /** @var Model $modelClassName */
         $modelClassName = get_class($this->_model);
 
         $data = $modelClassName::fetchAll($this->_cond, $this->_sort, $limit, $offset);
@@ -73,16 +73,16 @@ class Paginator implements \Zend_Paginator_Adapter_Interface
      */
     public function count () {
 
-        /** @var ModelInterface $modelClassName */
+        /** @var Model $modelClassName */
         $modelClassName = get_class($this->_model);
 
         return $modelClassName::count($this->_cond);
     }
 
     /**
-     * @param \MongoStar\Map\MapInterface $map
+     * @param Map $map
      */
-    public function setMap(\MongoStar\Map\MapInterface $map)
+    public function setMap(Map $map)
     {
         $this->_map = $map;
     }

@@ -9,10 +9,11 @@ require_once('vendor/autoload.php');
  * Class User
  *
  * @collection User
+ * @primary id
  *
  * @property string     $id       Identifier
  * @property string     $name     Just a name
- * @property int        $age     Just an age
+ * @property int        $age      Just an age
  * @property array      $pets     Users pet list
  * @property Country    $country  Users pet list
  */
@@ -39,18 +40,6 @@ class Country extends \MongoStar\Model {}
  */
 class City extends \MongoStar\Model {}
 
-class UserMap extends \MongoStar\Map
-{
-    public function common() : array
-    {
-        return [
-            'id' => 't-id',
-            'name' => 't-name',
-            'country' => 't-country'
-        ];
-    }
-}
-
 MongoStar\Config::setConfig([
     'driver'   => 'mongodb',
     'server'   => 'mongodb://localhost:27017',
@@ -59,23 +48,42 @@ MongoStar\Config::setConfig([
     'password' => 'password',
 ]);
 
-// $users = [];
+// MongoStar\Model::setDriver(new CustomDriver());
 
-//for ($i=0; $i<10; $i++) {
-//
-//    $user = new User();
-//
-//    $user->name = 'edward#'.($i+1);
-//    $user->age = $i +1;
-//
-//    $user->save();
-//}
+//$country = Country::fetchObject([
+//    'name' => 'Russia'
+//]);
+
+$users = User::fetchAll();
+
+var_dump(count($users)); die();
+
+$user = $users[0];
+
+// var_dump($user); die();
+
+echo $user->country->name . "\n\n";
+
+
+foreach (User::fetchAll() as $user) {
+
+}
+
+foreach (User::fetchAll() as $user) {
+    echo $user->country->name . "\n\n";
+}
+
+
+die();
+
+//var_dump($user); die();
 
 
 
 
-//User::remove();
+if ($country) {
 
-$user = User::fetchOne();
+    die("Ok");
+}
 
-var_dump(UserMap::execute($user)->toArray());
+die("No country");
