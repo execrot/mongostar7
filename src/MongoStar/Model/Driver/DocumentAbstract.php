@@ -65,23 +65,15 @@ abstract class DocumentAbstract implements \ArrayAccess
      * Populate model with data
      *
      * @param array $data
-     * @return bool
      */
-    public function populate(array $data) : bool
+    public function populate(array $data)
     {
-        if ($this->getModel()->getMeta()->isValid($data)) {
+        foreach ($this->getModel()->getMeta()->getProperties() as $property) {
 
-            foreach ($this->getModel()->getMeta()->getProperties() as $property) {
-
-                if (isset($data[$property->getName()])) {
-                    $this->__set($property->getName(), $data[$property->getName()]);
-                }
+            if (isset($data[$property->getName()])) {
+                $this->setProperty($property, $data[$property->getName()]);
             }
-
-            return true;
         }
-
-        return false;
     }
 
     /**
@@ -119,11 +111,21 @@ abstract class DocumentAbstract implements \ArrayAccess
             if ($property->getName() == $name) {
 
                 $value = isset($data[$name])?$data[$name]:null;
-                return $this->_castDataType($property, $value, false, $toArray);
+                return $this->_castDataType($property, $value, true, $toArray);
             }
         }
 
         throw new Exception\PropertyWasNotFound($this->getModel()->getMeta()->getCollection(), $name);
+    }
+
+    /**
+     * @param \MongoStar\Model\Meta\Property $property
+     * @param $value
+     * @param bool $fromSet
+     */
+    public function setProperty(\MongoStar\Model\Meta\Property $property, $value, bool $fromSet = false)
+    {
+        $this->_data[$property->getName()] = $this->_castDataType($property, $value, $fromSet);
     }
 
     /**
@@ -153,8 +155,7 @@ abstract class DocumentAbstract implements \ArrayAccess
         foreach ($this->getModel()->getMeta()->getProperties() as $property) {
 
             if ($property->getName() == $name) {
-
-                $this->_data[$name] = $this->_castDataType($property, $value, true);
+                $this->setProperty($property, $value, true);
                 $isSet = true;
             }
         }
@@ -173,7 +174,7 @@ abstract class DocumentAbstract implements \ArrayAccess
      * @return array|bool|float|int|\MongoStar\Model|null|string
      * @throws Exception\PropertyHasDifferentType
      */
-    private function _castDataType(\MongoStar\Model\Meta\Property $property, $value, bool $isSet = true, bool $toArray = false)
+    protected function _castDataType(\MongoStar\Model\Meta\Property $property, $value, bool $isSet = true, bool $toArray = false)
     {
         if (gettype($value) == 'object') {
 
@@ -200,14 +201,22 @@ abstract class DocumentAbstract implements \ArrayAccess
             }
         }
 
-        else if (!$isSet && class_exists('\\' . $property->getType()) && is_subclass_of('\\' . $property->getType(), '\\MongoStar\\Model')) {
+        else if (class_exists('\\' . $property->getType()) && is_subclass_of('\\' . $property->getType(), '\\MongoStar\\Model')) {
 
             $modelClassName = '\\' . $property->getType();
 
             if ($value) {
+
+                if (!$isSet) {
+                    return $value;
+                }
+
+                /** @var \MongoStar\Model $model */
+                $model = new $modelClassName();
+
                 /** @var \MongoStar\Model $modelClassName */
                 $model = $modelClassName::fetchObject([
-                    $this->getModel()->getMeta()->getPrimary() => $value
+                    $model->getMeta()->getPrimary() => $value
                 ]);
             }
             else {
@@ -223,27 +232,36 @@ abstract class DocumentAbstract implements \ArrayAccess
 
         else if (is_scalar($value)) {
 
+            $isValidScalarType = false;
+
             if ($property->getType() == 'string') {
                 $value = strval($value);
+                $isValidScalarType = true;
             }
 
             else if ($property->getType() == 'float') {
                 $value = floatval($value);
+                $isValidScalarType = true;
             }
 
             else if ($property->getType() == 'double') {
                 $value = doubleval($value);
+                $isValidScalarType = true;
             }
 
             else if ($property->getType() == 'boolean' || $property->getType() == 'bool') {
                 $value = boolval($value);
+                $isValidScalarType = true;
             }
 
             else if ($property->getType() == 'int' || $property->getType() == 'integer' ) {
                 $value = intval($value);
+                $isValidScalarType = true;
             }
 
-            return $value;
+            if ($property->getType() == gettype($value) || $isValidScalarType) {
+                return $value;
+            }
         }
 
         else if (gettype($value) == $property->getType()) {
@@ -303,4 +321,9 @@ abstract class DocumentAbstract implements \ArrayAccess
     {
         $this->__set($offset, null);
     }
+
+    /**
+     * @return int
+     */
+    abstract public function getTimestamp() : int;
 }

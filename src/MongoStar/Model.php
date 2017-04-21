@@ -49,7 +49,7 @@ class Model implements Model\ModelInterface, \ArrayAccess
     /**
      * @return Model\Driver\DocumentAbstract
      */
-    public function getDocument()
+    public function getDocument() : Model\Driver\DocumentAbstract
     {
         if (!$this->_document) {
 
@@ -194,12 +194,10 @@ class Model implements Model\ModelInterface, \ArrayAccess
     /**
      * @param array|string|null $cond
      * @param array|string|null $sort
-     * @param int|null $count
-     * @param int|null $offset
      *
      * @return \MongoStar\Model
      */
-    public static function fetchObject($cond = null, $sort = null, int $count = null, int $offset = null)
+    public static function fetchObject($cond = null, $sort = null)
     {
         return self::__callStatic(__FUNCTION__, func_get_args());
     }
@@ -254,6 +252,14 @@ class Model implements Model\ModelInterface, \ArrayAccess
      * @return int
      */
     public function save()
+    {
+        return self::__call(__FUNCTION__, func_get_args());
+    }
+
+    /**
+     * @return int
+     */
+    public function getTimestamp() : int
     {
         return self::__call(__FUNCTION__, func_get_args());
     }

@@ -21,7 +21,30 @@ class Driver extends \MongoStar\Model\Driver\DriverAbstract
     public static function getManager() : \MongoDB\Driver\Manager
     {
         if (!self::$_manager) {
-            self::$_manager = new \MongoDB\Driver\Manager(\MongoStar\Config::getConfig()['server']);
+
+            $config = \MongoStar\Config::getConfig();
+
+            $credentials = null;
+            if (isset($config['username']) && isset($config['password'])) {
+                $credentials = implode(':', [$config['username'], $config['password']]) . '@';
+            }
+
+            $servers = [];
+
+            foreach ($config['servers'] as $server) {
+                $servers[] = implode(':', [$server['host'], $server['port']]);
+            }
+
+            $servers = implode(',', $servers) . '/' . $config['db'];
+
+            $replicaSetName = null;
+            if (isset($config['replicaSetName']) && !empty($config['replicaSetName'])) {
+                $replicaSetName = '?replicaSet=' . $config['replicaSetName'];
+            }
+
+            $connection = 'mongodb://' . $credentials . $servers . $replicaSetName;
+
+            self::$_manager = new \MongoDB\Driver\Manager($connection);
         }
 
         return self::$_manager;
@@ -39,9 +62,7 @@ class Driver extends \MongoStar\Model\Driver\DriverAbstract
     }
 
     /**
-     * Save object
-     *
-     * @return mixed
+     * @return int|null
      */
     public function save()
     {
@@ -126,15 +147,13 @@ class Driver extends \MongoStar\Model\Driver\DriverAbstract
             'sort' => $sort
         ]);
 
-        $data = $this->_getQueryData($query);
+        $cursor = new Cursor($this->getModel(), $query);
 
-        if (count($data) == 0) {
+        if (!$cursor->count()) {
             return null;
         }
 
-        $mongoCursor = new Cursor($this->getModel(), $data);
-
-        return $mongoCursor->current();
+        return $cursor->offsetGet(0);
     }
 
     /**
@@ -156,10 +175,7 @@ class Driver extends \MongoStar\Model\Driver\DriverAbstract
             'limit' => $count
         ]);
 
-        return new Cursor(
-            $this->getModel(),
-            $this->_getQueryData($query)
-        );
+        return new Cursor($this->getModel(), $query);
     }
 
     /**
@@ -201,9 +217,13 @@ class Driver extends \MongoStar\Model\Driver\DriverAbstract
 
         foreach ($data as $dataItem) {
 
-            if ($this->getModel()->getMeta()->isValid($dataItem)) {
-                $bulk->insert($dataItem);
-            }
+            $modelClassName = $this->getModel()->getModelClassName();
+
+            /** @var \MongoStar\Model $model */
+            $model = new $modelClassName();
+            $model->populate($dataItem);
+
+            $bulk->insert($model->getData());
         }
 
         if ($bulk->count()) {
@@ -257,19 +277,5 @@ class Driver extends \MongoStar\Model\Driver\DriverAbstract
         }
 
         return [$cond, $sort];
-    }
-
-    /**
-     * @param \MongoDB\Driver\Query $query
-     * @return array
-     */
-    private function _getQueryData(\MongoDB\Driver\Query $query) : array
-    {
-        $manager = self::getManager();
-        $collectionNamespace = $this->getCollectionNamespace();
-
-        $cursor = $manager->executeQuery($collectionNamespace, $query);
-
-        return json_decode(json_encode($cursor->toArray()), true);
     }
 }

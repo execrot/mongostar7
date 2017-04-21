@@ -33,12 +33,9 @@ interface ModelInterface
      * @param array|string|null $cond
      * @param array|string|null $sort
      *
-     * @param int|null $count
-     * @param int|null $offset
-     *
      * @return \MongoStar\Model
      */
-    public static function fetchObject($cond = null, $sort = null, int $count = null, int $offset = null);
+    public static function fetchObject($cond = null, $sort = null);
 
     /**
      * @param array|string|null $cond

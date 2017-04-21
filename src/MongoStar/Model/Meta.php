@@ -30,9 +30,14 @@ final class Meta
     private $_primary = 'id';
 
     /**
-     * @var array
+     * @var Meta\Property[]
      */
     private $_properties = [];
+
+    /**
+     * @var Meta\Property[]
+     */
+    private $_assocProperties = [];
 
     /**
      * @var string
@@ -106,38 +111,24 @@ final class Meta
     }
 
     /**
-     * @param array $data
-     * @return bool
+     * @param string $name
+     *
+     * @return Meta\Property
+     * @throws Meta\Exception\PropertyWasNotFound
      */
-    public function isValid(array $data = []) : bool
+    public function getPropertyWithName(string $name) : Meta\Property
     {
-        foreach ($data as $name => $value) {
-
-            foreach ($this->getProperties() as $property) {
-
-                if ($property->getName() == $name) {
-
-                    if (gettype($value) == 'object') {
-
-                        if (get_class($value) != $property->getType()) {
-                            return false;
-                        }
-                    }
-                    else if (gettype($value) != $property->getType()) {
-                        return false;
-                    }
-
-                    return true;
-                }
-            }
+        if (isset($this->_assocProperties[$name])) {
+            return $this->_assocProperties[$name];
         }
 
-        return false;
+        throw new Meta\Exception\PropertyWasNotFound($this->getCollection(), $name);
     }
 
     /**
      * @param \MongoStar\Model $model
      *
+     * @throws Meta\Exception\CollectionCantBeWithoutPrimary
      * @throws Meta\Exception\CollectionCantBeWithoutProperties
      * @throws Meta\Exception\CollectionNameDoesNotExists
      * @throws Meta\Exception\PropertyIsSetIncorrectly
@@ -188,12 +179,17 @@ final class Meta
                 $property->setType($propertyLine[1]);
                 $property->setName(str_replace('$', null, $propertyLine[2]));
 
+                $this->_assocProperties[$property->getName()] = $property;
                 $this->_properties[] = $property;
             }
         }
 
         if (!strlen($this->_collection)) {
             throw new Meta\Exception\CollectionNameDoesNotExists($model);
+        }
+
+        if (!strlen($this->_primary)) {
+            throw new Meta\Exception\CollectionCantBeWithoutPrimary($model);
         }
 
         if (!count($this->_properties)) {

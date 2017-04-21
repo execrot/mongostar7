@@ -3,5 +3,10 @@
   "type": "library",
   "autoload": {
     "psr-0": { "MongoStar": "src/" }
+  },
+  "requirements": {
+    "php": ">=7",
+    "ext-mongodb": ">=3",
+    "ext-openssl": "*"
   }
 }

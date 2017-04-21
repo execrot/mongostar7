@@ -79,7 +79,7 @@ abstract class DriverAbstract
      * @param int|null $count
      * @param int|null $offset
      *
-     * @return Mongodb\Cursor
+     * @return CursorAbstract
      */
     abstract public function fetchAll($cond = null, $sort = null, int $count = null, int $offset = null);
 

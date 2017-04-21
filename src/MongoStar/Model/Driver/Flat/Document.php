@@ -8,16 +8,16 @@ namespace MongoStar\Model\Driver\Flat;
  * Class Document
  * @package MongoStar\Model\Driver\Flat
  */
-abstract class Document extends \MongoStar\Model\Driver\DocumentAbstract
+class Document extends \MongoStar\Model\Driver\DocumentAbstract
 {
-    /**
-     * Document constructor.
-     * @param \MongoStar\Model $model
-     * @throws \Exception
-     */
-    public function __construct(\MongoStar\Model $model)
+    public function getTimestamp(): int
     {
-        parent::__construct($model);
-        throw new \Exception("NotImplemented: MongoStar\\Model\\Driver\\Flat\\Document");
+        $primaryValue = $this->getModel()->{$this->getModel()->getMeta()->getPrimary()};
+
+        if (!$primaryValue) {
+            return 0;
+        }
+
+        return intval(substr($primaryValue, Driver::ID_UNIQUE_LENGTH));
     }
 }

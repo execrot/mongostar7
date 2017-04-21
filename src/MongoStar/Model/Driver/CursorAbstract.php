@@ -26,6 +26,11 @@ abstract class CursorAbstract implements \Iterator, \ArrayAccess, \Countable
     private $_cursorData = [];
 
     /**
+     * @var \MongoStar\Model[]
+     */
+    protected $_documents = [];
+
+    /**
      * MongodbCursor constructor.
      *
      * @param \MongoStar\Model $model
@@ -101,14 +106,31 @@ abstract class CursorAbstract implements \Iterator, \ArrayAccess, \Countable
     }
 
     /**
+     * @return int
+     */
+    public function save() : int
+    {
+        $savedCount = 0;
+
+        foreach ($this->_documents as $document) {
+            $savedCount += $document->save();
+        }
+
+        return $savedCount;
+    }
+
+    /**
      * @param array $data
      * @param int $index
      *
      * @return \MongoStar\Model
-     * @throws Exception\IndexOutOfRange
      */
     public function getRowWithIndex(array $data, int $index)
     {
+        if (isset($this->_documents[$index])) {
+            return $this->_documents[$index];
+        }
+
         if (isset($data[$index])) {
 
             $modelClassName = $this->getModel()->getModelClassName();
@@ -117,10 +139,12 @@ abstract class CursorAbstract implements \Iterator, \ArrayAccess, \Countable
             $model = new $modelClassName();
             $model->populate(static::processDataRow($data[$index]));
 
+            $this->_documents[$index] = $model;
+
             return $model;
         }
 
-        throw new Exception\IndexOutOfRange($index, count($data) - 1);
+        return null;
     }
 
     /**
