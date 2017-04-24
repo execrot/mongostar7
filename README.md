@@ -276,13 +276,15 @@ You need to create the model class and extend it from the abstract \MongoStar\Mo
  */
 class User extends \MongoStar\Model {}
 ```
+
 **What it that?**
-| DocsBlock tag | Description |
-| ------ | ------ |
-| **@collection** | collection name, if its will not be found at DocsBlock will be thrown CollectionNameDoesNotExists exception |
-| **@primary** | its something like primary key for the collection, if not specified will be used 'id' by default, and if you specify non-existing fields will be thrown CollectionCantBeWithoutPrimary exception (lets talk about 'primary' later) |
+
+| DocsBlock tag               | Description |
+| --------------------------- | ----------- |
+| **@collection**             | collection name, if its will not be found at DocsBlock will be thrown CollectionNameDoesNotExists exception |
+| **@primary**                | its something like primary key for the collection, if not specified will be used 'id' by default, and if you specify non-existing fields will be thrown CollectionCantBeWithoutPrimary exception (lets talk about 'primary' later) |
 | **@property** [type] [name] | collection field, if no onw is found in the DocsBlock will be thrown PropertyWasNotFound exception |
-| **@method** | unnecessary, just for autocompeting |
+| **@method**                 | unnecessary, just for autocompeting |
 
 **Important**:
 - For the MongoDb driver field names 'id' and '_id' is the same things, you must always use 'id'
