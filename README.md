@@ -757,4 +757,6 @@ $paginator->setCurrentPageNumber($currentPage);
 ---
 
 This is it!
-Licence: You can use this library for free, but when I need something, I will ask you for a request.
+
+## Licence: 
+> Some day, and that day may never come, I will call upon you to do a service for me. But until that day, consider this justice a gift on my daughter's wedding day.
