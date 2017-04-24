@@ -1,6 +1,10 @@
 {
   "name": "mongostar/php7",
   "type": "library",
+  "authors": [
+    {"name": "Edward Komissarov", "email": "execrot@gmail.com"}
+  ],
+  "license": "Some day, and that day may never come, I will call upon you to do a service for me. But until that day, consider this justice a gift on my daughter's wedding day.",
   "autoload": {
     "psr-0": { "MongoStar": "src/" }
   },
