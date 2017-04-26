@@ -1,6 +1,6 @@
 <?php
 
-namespace MongoStar\Model\Exception;
+namespace MongoStar\Model\Driver\Exception;
 
 /**
  * Class PropertyWasNotFound

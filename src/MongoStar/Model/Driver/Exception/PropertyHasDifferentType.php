@@ -1,9 +1,9 @@
 <?php
 
-namespace MongoStar\Model\Exception;
+namespace MongoStar\Model\Driver\Exception;
 
 /**
- * Class PropertyWasNotFound
+ * Class PropertyHasDifferentType
  * @package MongoStar\Model\Exception
  */
 class PropertyHasDifferentType extends \Exception

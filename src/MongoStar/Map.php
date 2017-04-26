@@ -219,7 +219,7 @@ abstract class Map implements Map\MapInterface, \Iterator
     {
         $data = $this->getData();
 
-        if (is_object($data) && $data instanceof Model\Driver\CursorInterface) {
+        if (is_object($data) && $data instanceof Model\Driver\CursorAbstract) {
             return false;
         }
 

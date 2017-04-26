@@ -8,68 +8,131 @@ namespace MongoStar\Model\Driver\Mongodb;
  * Class Cursor
  * @package MongoStar\Model\Driver\Mongodb
  */
-class Cursor implements \MongoStar\Model\Driver\CursorInterface,  \Iterator
+class Cursor extends \MongoStar\Model\Driver\CursorAbstract
 {
     /**
-     * @var \MongoStar\Model
+     * @var \MongoDB\Driver\Cursor
      */
-    private $_model = null;
+    private $_cursor = null;
+
+    /**
+     * @var \IteratorIterator
+     */
+    private $_iterator = null;
 
     /**
      * @var int
      */
-    private $_cursorIndex = 0;
+    private $_count = -1;
 
     /**
-     * @var array
+     * @var \MongoDB\Driver\Query
      */
-    private $_cursorData = [];
+    private $_query = null;
 
     /**
-     * MongodbCursor constructor.
+     * Cursor constructor.
      *
      * @param \MongoStar\Model $model
-     * @param array $data
+     * @param \MongoDB\Driver\Query $query
      */
-    public function __construct(\MongoStar\Model $model, array $data)
+    public function __construct(\MongoStar\Model $model, \MongoDB\Driver\Query $query)
     {
-        $this->_model = $model;
-        $this->_cursorData = $data;
+        parent::__construct($model, []);
+        $this->_query = $query;
     }
 
     /**
-     * @return mixed
+     * @return \MongoStar\Model
+     */
+    private function _getDataModel() : \MongoStar\Model
+    {
+        $data = json_decode(json_encode($this->_iterator->current()), true);
+
+        $modelClassName = $this->getModel()->getModelClassName();
+
+        /** @var \MongoStar\Model $model */
+        $model = new $modelClassName();
+        $model->populate($this->processDataRow($data));
+
+        return $model;
+    }
+
+    /*************** \ArrayIterator implementation ***********/
+
+    /**
+     * @param int $offset
+     * @return bool
+     */
+    public function offsetExists($offset)
+    {
+        if (is_numeric($offset)) {
+
+            $this->rewind();
+
+            for ($i=0; $i<$offset; $i++) {
+                $this->next();
+            }
+
+            return $this->valid();
+        }
+
+        return false;
+    }
+
+    /**
+     * @param mixed $offset
+     *
+     * @return \MongoStar\Model
+     * @throws \MongoStar\Model\Driver\Exception\IndexOutOfRange
+     */
+    public function offsetGet($offset)
+    {
+        if (isset($this->_documents[$offset])) {
+            return $this->_documents[$offset];
+        }
+
+        $this->rewind();
+
+        for ($i=0; $i<$offset; $i++) {
+
+            try {
+                $this->_iterator->next();
+            }
+            catch (\Exception $e) {
+                throw new \MongoStar\Model\Driver\Exception\IndexOutOfRange($offset, $i+1);
+            }
+        }
+
+        $this->_documents[$offset] = $this->_getDataModel();
+        return $this->_documents[$offset];
+    }
+
+
+
+    /*************** \Iterator implementation ***********/
+
+    /**
+     * @return \MongoStar\Model
      */
     public function current()
     {
-        $data = (array)$this->_cursorData[$this->_cursorIndex];
+        $offset = $this->_iterator->key();
 
-        $modelClassName = get_class($this->_model);
-        $model = new $modelClassName();
-
-        foreach ($this->_model->getMeta()->getProperties() as $property)
-        {
-            $propertyName = $property->getName();
-
-            if ($propertyName == 'id') {
-                $propertyName = '_id';
-                $value = $data[$propertyName]['$oid'];
-            }
-            else {
-                $value = isset($data[$propertyName]) ? $data[$propertyName] : null;
-            }
-
-            $model->{$property->getName()} = $value;
+        if (isset($this->_documents[$offset])) {
+            return $this->_documents[$offset];
         }
 
-        return $model;
+        $this->_documents[$offset] = $this->_getDataModel();
+        return $this->_documents[$offset];
     }
 
     /**
      * return null
      */
-    public function next() {
-        $this->_cursorIndex++;
+    public function next()
+    {
+        $this->_iterator->next();
     }
 
     /**
@@ -77,11 +140,7 @@ class Cursor implements \MongoStar\Model\Driver\CursorInterface,  \Iterator
      */
     public function key()
     {
-        if (isset($this->_cursorData[$this->_cursorIndex])) {
-            return $this->_cursorIndex;
-        }
-
-        return null;
+        return $this->_iterator->key();
     }
 
     /**
@@ -89,7 +148,7 @@ class Cursor implements \MongoStar\Model\Driver\CursorInterface,  \Iterator
      */
     public function valid()
     {
-        return isset($this->_cursorData[$this->_cursorIndex]);
+        return $this->_iterator->valid();
     }
 
     /**
@@ -97,21 +156,75 @@ class Cursor implements \MongoStar\Model\Driver\CursorInterface,  \Iterator
      */
     public function rewind()
     {
-        $this->_cursorIndex = 0;
+        $this->_cursor = $this->_executeQuery($this->_query);
+        $this->_iterator = new \IteratorIterator($this->_cursor);
+
+        $this->_iterator->rewind();
+    }
+
+
+    /*************** \Countable implementation ***********/
+
+    /**
+     * @return int
+     */
+    public function count() : int
+    {
+        if ($this->_count == -1) {
+
+            $iterator = new \IteratorIterator($this->_executeQuery($this->_query));
+            $iterator->rewind();
+
+            for ($index = 0; ; $index++) {
+
+                try {
+                    $iterator->next();
+                } catch (\Exception $e) {
+                    $this->_count = $index + 1;
+                    break;
+                }
+            }
+        }
+
+        return $this->_count;
     }
 
     /**
+     * @param array $data
      * @return array
      */
-    public function toArray(): array
+    public function processDataRow(array $data) : array
     {
-        $arrayData = [];
-
-        foreach ($this as $document)
-        {
-            $arrayData[] = $document->toArray();
+        if (isset($data['_id'])) {
+            $data['id'] = $data['_id']['$oid'];
+            unset($data['_id']);
         }
 
-        return $arrayData;
+        return $data;
+    }
+
+    /**
+     * @return string
+     */
+    public function getCollectionNamespace() : string
+    {
+        return implode('.', [
+            \MongoStar\Config::getConfig()['db'],
+            $this->getModel()->getMeta()->getCollection()
+        ]);
+    }
+
+    /**
+     * @param \MongoDB\Driver\Query $query
+     * @return \MongoDB\Driver\Cursor
+     */
+    private function _executeQuery(\MongoDB\Driver\Query $query) : \MongoDB\Driver\Cursor
+    {
+        $manager = Driver::getManager();
+
+        return $manager->executeQuery(
+            $this->getCollectionNamespace(),
+            $query
+        );
     }
 }

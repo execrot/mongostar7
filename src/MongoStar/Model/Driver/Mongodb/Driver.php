@@ -2,13 +2,13 @@
 
 declare(strict_types = 1);
 
-namespace MongoStar\Model\Driver;
+namespace MongoStar\Model\Driver\Mongodb;
 
 /**
- * Class Mongodb
- * @package MongoStar\Driver
+ * Class Driver
+ * @package MongoStar\Model\Driver\Mongodb
  */
-class Mongodb implements DriverInterface
+class Driver extends \MongoStar\Model\Driver\DriverAbstract
 {
     /**
      * @var \MongoDB\Driver\Manager
@@ -16,41 +16,38 @@ class Mongodb implements DriverInterface
     private static $_manager = null;
 
     /**
-     * @var \MongoStar\Model
-     */
-    private $_model = null;
-
-    /**
-     * @var null$
-     */
-    private $_cursor = null;
-
-    /**
      * @return \MongoDB\Driver\Manager
      */
     public static function getManager() : \MongoDB\Driver\Manager
     {
         if (!self::$_manager) {
-            self::$_manager =  new \MongoDB\Driver\Manager(\MongoStar\Config::getConfig()['server']);
+
+            $config = \MongoStar\Config::getConfig();
+
+            $credentials = null;
+            if (isset($config['username']) && isset($config['password'])) {
+                $credentials = implode(':', [$config['username'], $config['password']]) . '@';
+            }
+
+            $servers = [];
+
+            foreach ($config['servers'] as $server) {
+                $servers[] = implode(':', [$server['host'], $server['port']]);
+            }
+
+            $servers = implode(',', $servers) . '/' . $config['db'];
+
+            $replicaSetName = null;
+            if (isset($config['replicaSetName']) && !empty($config['replicaSetName'])) {
+                $replicaSetName = '?replicaSet=' . $config['replicaSetName'];
+            }
+
+            $connection = 'mongodb://' . $credentials . $servers . $replicaSetName;
+
+            self::$_manager = new \MongoDB\Driver\Manager($connection);
         }
 
         return self::$_manager;
-    }
-
-    /**
-     * @param \MongoStar\Model $model
-     */
-    public function setModel(\MongoStar\Model $model)
-    {
-        $this->_model = $model;
-    }
-
-    /**
-     * @return \MongoStar\Model
-     */
-    public function getModel(): \MongoStar\Model
-    {
-        return $this->_model;
     }
 
     /**
@@ -65,9 +62,7 @@ class Mongodb implements DriverInterface
     }
 
     /**
-     * Save object
-     *
-     * @return mixed
+     * @return int|null
      */
     public function save()
     {
@@ -78,6 +73,8 @@ class Mongodb implements DriverInterface
 
         if ($this->getModel()->id) {
             $cond = $this->_replaceIdToObjectId(['id' => $this->getModel()->id]);
+            $data = $this->_replaceIdToObjectId($data);
+
             $bulk->update($cond, ['$set' => $data], ['multi' => true, 'upsert' => false]);
         }
         else {
@@ -100,12 +97,12 @@ class Mongodb implements DriverInterface
     }
 
     /**
-     * @param array $cond
+     * @param array|string|null $cond
      * @param int|null $limit
      *
      * @return int
      */
-    public function remove(array $cond = [], int $limit = null) : int
+    public function remove($cond = null, int $limit = null) : int
     {
         if ($this->getModel()->id) {
 
@@ -114,6 +111,9 @@ class Mongodb implements DriverInterface
             ]);
 
             $limit = 1;
+        }
+        else {
+            list($cond) = $this->_processQuery($cond);
         }
 
         $bulk = new \MongoDB\Driver\BulkWrite();
@@ -133,89 +133,62 @@ class Mongodb implements DriverInterface
 
 
     /**
-     * @param array $cond
-     * @param array $sort
+     * @param array|string|null $cond
+     * @param array|string|null $sort
      *
      * @return \MongoStar\Model|null
      */
-    public function fetchOne(array $cond = [], array $sort = [])
+    public function fetchOne($cond = null, $sort = null)
     {
-        $manager = self::getManager();
+        list($cond, $sort) = $this->_processQuery($cond, $sort);
 
-        $query = new \MongoDB\Driver\Query($this->_replaceIdToObjectId($cond), [
+        $query = new \MongoDB\Driver\Query($cond, [
             'limit' => 1,
             'sort' => $sort
         ]);
 
-        $collectionNamespace = $this->getCollectionNamespace();
+        $cursor = new Cursor($this->getModel(), $query);
 
-        $cursor = $manager->executeQuery($collectionNamespace, $query);
-
-        $data = json_decode(json_encode($cursor->toArray()), true);
-
-        if (count($data) == 0) {
+        if (!$cursor->count()) {
             return null;
         }
 
-        $cursor = new Mongodb\Cursor($this->getModel(), $data);
-
-        foreach ($cursor as $item) {
-            return $item;
-        }
+        return $cursor->offsetGet(0);
     }
 
     /**
-     * Fetch model, always return Model
+     * @param array|string|null $cond
+     * @param array|string|null $sort
      *
-     * @param array|null $cond
-     * @param array|null $sort
-     *
-     * @return \MongoStar\Model
-     */
-    public function fetchObject(array $cond = [], array $sort = []) : \MongoStar\Model
-    {
-        $model = $this->fetchOne($cond, $sort);
-
-        if ($model) {
-            return $model;
-        }
-
-        return $this->getModel();
-    }
-
-    /**
-     * @param array|null $cond
-     * @param array|null $sort
      * @param int|null $count
      * @param int|null $offset
      *
-     * @return Mongodb\Cursor
+     * @return Cursor
      */
-    public function fetchAll(array $cond = [], array $sort = [], int $count = null, int $offset = null)
+    public function fetchAll($cond = null, $sort = null, int $count = null, int $offset = null)
     {
-        $options = [
+        list($cond, $sort) = $this->_processQuery($cond, $sort);
+
+        $query = new \MongoDB\Driver\Query($cond, [
             'sort' => $sort,
             'skip' => $offset,
             'limit' => $count
-        ];
-        $query = new \MongoDB\Driver\Query($this->_replaceIdToObjectId($cond), $options);
+        ]);
 
-        $cursor = self::getManager()->executeQuery($this->getCollectionNamespace(), $query);
-
-        $data = json_decode(json_encode($cursor->toArray()), true);
-
-        return new Mongodb\Cursor($this->getModel(), $data);
+        return new Cursor($this->getModel(), $query);
     }
 
     /**
-     * @param array $cond
+     * @param array|string|null $cond
      * @return int
      */
-    public function count(array $cond = []) : int
+    public function count($cond = null) : int
     {
+        list($cond) = $this->_processQuery($cond, null);
+
         $command = new \MongoDB\Driver\Command([
             "count" => $this->getModel()->getMeta()->getCollection(),
-            "query" => $this->_replaceIdToObjectId($cond)
+            "query" => $cond
         ]);
 
         $manager = self::getManager();
@@ -244,14 +217,19 @@ class Mongodb implements DriverInterface
 
         foreach ($data as $dataItem) {
 
-            if ($this->getModel()->getMeta()->isValid($dataItem)) {
-                $bulk->insert($dataItem);
-            }
+            $modelClassName = $this->getModel()->getModelClassName();
+
+            /** @var \MongoStar\Model $model */
+            $model = new $modelClassName();
+            $model->populate($dataItem);
+
+            $bulk->insert($model->getData());
         }
 
-        $collectionNamespace = $this->getCollectionNamespace();
-
         if ($bulk->count()) {
+
+            $collectionNamespace = $this->getCollectionNamespace();
+
             $writeResults = $manager->executeBulkWrite($collectionNamespace, $bulk);
             return $writeResults->getInsertedCount();
         }
@@ -260,12 +238,16 @@ class Mongodb implements DriverInterface
     }
 
     /**
-     * @param array $cond
-     * @return array
+     * @param array|string|null $cond
+     * @return mixed
      */
-    private function _replaceIdToObjectId(array $cond = []) : array
+    private function _replaceIdToObjectId($cond = null)
     {
-        if (array_key_exists('id', $cond)) {
+        if (!is_array($cond)) {
+            $cond = [$cond];
+        }
+
+        if (is_array($cond) && array_key_exists('id', $cond)) {
 
             $cond['_id'] = new \MongoDB\BSON\ObjectID(
                 !empty($cond['id']) ? $cond['id'] : null
@@ -274,5 +256,26 @@ class Mongodb implements DriverInterface
         }
 
         return $cond;
+    }
+
+    /**
+     * @param array|string|null $cond
+     * @param array|string|null $sort
+     *
+     * @return array
+     */
+    private function _processQuery($cond = null, $sort = null) : array
+    {
+        if ($cond === null) {
+            $cond = [];
+        }
+
+        $cond = $this->_replaceIdToObjectId($cond);
+
+        if ($sort === null) {
+            $sort = [];
+        }
+
+        return [$cond, $sort];
     }
 }

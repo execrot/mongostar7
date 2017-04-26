@@ -2,18 +2,15 @@
 
 declare(strict_types = 1);
 
-namespace MongoStar\Model\Driver\Mongodb;
+namespace MongoStar\Model\Driver\Flat;
 
 /**
  * Class Document
- * @package MongoStar\Model\Driver\Mongodb
+ * @package MongoStar\Model\Driver\Flat
  */
 class Document extends \MongoStar\Model\Driver\DocumentAbstract
 {
-    /**
-     * @return int
-     */
-    public function getTimestamp() : int
+    public function getTimestamp(): int
     {
         $primaryValue = $this->getModel()->{$this->getModel()->getMeta()->getPrimary()};
 
@@ -21,7 +18,6 @@ class Document extends \MongoStar\Model\Driver\DocumentAbstract
             return 0;
         }
 
-        $objectId = new \MongoDB\BSON\ObjectID($primaryValue);
-        return $objectId->getTimestamp();
+        return intval(substr($primaryValue, Driver::ID_UNIQUE_LENGTH));
     }
 }
