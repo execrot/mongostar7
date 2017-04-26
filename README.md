@@ -21,7 +21,7 @@ ORM for the MongoDb v>=3 and the file-database (JSON)
         }
     ],
     "require": {
-        "mongostar/php7": "1.2.x-dev"
+        "mongostar/php7": "master-dev"
     }
 }
 ```
