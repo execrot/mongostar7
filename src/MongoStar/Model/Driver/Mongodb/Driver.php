@@ -149,7 +149,7 @@ class Driver extends \MongoStar\Model\Driver\DriverAbstract
 
         $cursor = new Cursor($this->getModel(), $query);
 
-        if (!$cursor->count()) {
+        if ($cursor->count() < 1) {
             return null;
         }
 
