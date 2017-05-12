@@ -172,18 +172,8 @@ class Cursor extends \MongoStar\Model\Driver\CursorAbstract
     {
         if ($this->_count == -1) {
 
-            $iterator = new \IteratorIterator($this->_executeQuery($this->_query));
-            $iterator->rewind();
-
-            for ($index = 0; ; $index++) {
-
-                try {
-                    $iterator->next();
-                } catch (\Exception $e) {
-                    $this->_count = $index + 1;
-                    break;
-                }
-            }
+            $queryResult = $this->_executeQuery($this->_query);
+            $this->_count = count($queryResult->toArray());
         }
 
         return $this->_count;
