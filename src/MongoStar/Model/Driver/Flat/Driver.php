@@ -59,6 +59,13 @@ class Driver extends \MongoStar\Model\Driver\DriverAbstract
         $primaryName = $this->getModel()->getMeta()->getPrimary();
         $primaryValue = $this->getModel()->{$this->getModel()->getMeta()->getPrimary()};
 
+        /////////////////////////////////////////////////////////////////
+        if (!$primaryValue) {
+            $this->getModel()->{$primaryName} = substr(uniqid(), 0, self::ID_UNIQUE_LENGTH) . time();
+            $primaryValue = $this->getModel()->{$primaryName};
+        }
+        /////////////////////////////////////////////////////////////////
+        
         if ($primaryValue) {
 
             $cond[$primaryName] = $primaryValue;
