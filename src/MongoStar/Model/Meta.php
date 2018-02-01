@@ -52,14 +52,7 @@ final class Meta
     {
         $this->_modelClassName = get_class($model);
 
-        if (empty(self::$_cache[$this->_modelClassName])) {
-            $this->_parse($model);
-        }
-        else {
-            $this->_collection = self::$_cache[$this->_modelClassName]['collection'];
-            $this->_primary    = self::$_cache[$this->_modelClassName]['primary'];
-            $this->_properties = self::$_cache[$this->_modelClassName]['properties'];
-        }
+        $this->_parse($model);
     }
 
     /**
@@ -126,6 +119,15 @@ final class Meta
     }
 
     /**
+     * @param string $name
+     * @return bool
+     */
+    public function hasProperty(string $name) : bool
+    {
+        return isset($this->_assocProperties[$name]);
+    }
+
+    /**
      * @param \MongoStar\Model $model
      *
      * @throws Meta\Exception\CollectionCantBeWithoutPrimary
@@ -135,6 +137,17 @@ final class Meta
      */
     private function _parse(\MongoStar\Model $model)
     {
+        if (!empty(self::$_cache[$this->_modelClassName])) {
+
+            $cache = self::$_cache[$this->_modelClassName];
+
+            $this->_collection      = $cache['collection'];
+            $this->_primary         = $cache['primary'];
+            $this->_properties      = $cache['properties'];
+            $this->_assocProperties = $cache['assocProperties'];
+
+            return;
+        }
 
         $reflection = new \ReflectionClass($model);
 
@@ -197,9 +210,10 @@ final class Meta
         }
 
         self::$_cache[$this->_modelClassName] = [
-            'collection' => $this->_collection,
-            'properties' => $this->_properties,
-            'primary'    => $this->_primary
+            'collection'      => $this->_collection,
+            'properties'      => $this->_properties,
+            'primary'         => $this->_primary,
+            'assocProperties' => $this->_assocProperties
         ];
     }
 }

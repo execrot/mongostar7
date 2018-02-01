@@ -31,15 +31,30 @@ abstract class CursorAbstract implements \Iterator, \ArrayAccess, \Countable
     protected $_documents = [];
 
     /**
-     * MongodbCursor constructor.
+     * @var array
+     */
+    private $_config = null;
+
+    /**
+     * CursorAbstract constructor.
      *
      * @param \MongoStar\Model $model
      * @param array $data
+     * @param array $config
      */
-    public function __construct(\MongoStar\Model $model, array $data)
+    public function __construct(\MongoStar\Model $model, array $data, array $config = [])
     {
         $this->_model = $model;
         $this->_cursorData = $data;
+        $this->_config = $config;
+    }
+
+    /**
+     * @return array
+     */
+    public function getConfig()
+    {
+        return $this->_config;
     }
 
     /**

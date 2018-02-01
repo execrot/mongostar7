@@ -64,11 +64,16 @@ class Model implements Model\ModelInterface, \ArrayAccess
     /**
      * @return Model\Driver\DriverAbstract
      *
+     * @throws Model\Exception\ConfigWasNotProvided
      * @throws Model\Exception\DriverClassDoesNotExists
      * @throws Model\Exception\DriverClassDoesNotExtendsFromDriverAbstract
      */
     public static function getDriver() : Model\Driver\DriverAbstract
     {
+        if (!Config::getConfig()) {
+            throw new Model\Exception\ConfigWasNotProvided();
+        }
+
         if (!empty(self::$_driverClassName)) {
             $driverClassName = self::$_driverClassName;
         }
@@ -85,7 +90,7 @@ class Model implements Model\ModelInterface, \ArrayAccess
             throw new Model\Exception\DriverClassDoesNotExtendsFromDriverAbstract($driverClassName);
         }
 
-        return new $driverClassName();
+        return new $driverClassName(\MongoStar\Config::getConfig());
     }
 
     /**

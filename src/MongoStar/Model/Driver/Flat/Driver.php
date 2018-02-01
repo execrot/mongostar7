@@ -20,12 +20,13 @@ class Driver extends \MongoStar\Model\Driver\DriverAbstract
     /**
      * Driver constructor.
      *
+     * @param array $config
      * @throws Exception\OpenSSLFunctionDoesNotExists
      * @throws Exception\OpenSSLUnknownCryptMethod
      */
-    public function __construct()
+    public function __construct($config)
     {
-        $config = \MongoStar\Config::getConfig();
+        parent::__construct($config);
 
         if (isset($config['secure']) && $config['secure']) {
 
@@ -319,7 +320,7 @@ class Driver extends \MongoStar\Model\Driver\DriverAbstract
      */
     private function _setCollectionContent(array $content)
     {
-        $config = \MongoStar\Config::getConfig();
+        $config = $this->getConfig();
 
         $dataSourceDir = $this->_getCollectionFilePath(true);
 
@@ -389,7 +390,7 @@ class Driver extends \MongoStar\Model\Driver\DriverAbstract
     {
         $dataSourcePath = $this->_getDbPath($createOfNotExists);
 
-        $dataSourcePath .= '/' . \MongoStar\Config::getConfig()['db'];
+        $dataSourcePath .= '/' . $this->getConfig()['db'];
 
         if ($createOfNotExists && file_exists($dataSourcePath) && !is_writable($dataSourcePath)) {
             throw new Exception\DataSourceDbDirIsNotWritable($dataSourcePath, $this->_getPosixData());
@@ -415,7 +416,7 @@ class Driver extends \MongoStar\Model\Driver\DriverAbstract
      */
     private function _getDbPath(bool $createOfNotExists = false) : string
     {
-        $config = \MongoStar\Config::getConfig();
+        $config = $this->getConfig();
 
         $dataSourcePath = '/' . implode('/', array_filter(explode('/', $config['dir'])));
 
@@ -441,15 +442,15 @@ class Driver extends \MongoStar\Model\Driver\DriverAbstract
     {
         if ($this->_isSecured) {
 
-            $method   = \MongoStar\Config::getConfig()['method'];
-            $password = \MongoStar\Config::getConfig()['password'];
+            $method   = $this->getConfig()['method'];
+            $password = $this->getConfig()['password'];
 
             $iv = $this->_getInitializeVector();
 
             $content = openssl_encrypt($content, $method, $password, 0, $iv);
 
             if (!$content) {
-                throw new Exception\OpenSSLCouldNotEncryptCollection(\MongoStar\Config::getConfig());
+                throw new Exception\OpenSSLCouldNotEncryptCollection($this->getConfig());
             }
         }
 
@@ -468,15 +469,15 @@ class Driver extends \MongoStar\Model\Driver\DriverAbstract
 
         if ($this->_isSecured) {
 
-            $password = \MongoStar\Config::getConfig()['password'];
-            $method   = \MongoStar\Config::getConfig()['method'];
+            $password = $this->getConfig()['password'];
+            $method   = $this->getConfig()['method'];
 
             $iv = $this->_getInitializeVector();
 
             $content = openssl_decrypt($content, $method, $password, 0, $iv);
 
             if (!$content) {
-                throw new Exception\OpenSSLCouldNotDecryptCollection(\MongoStar\Config::getConfig());
+                throw new Exception\OpenSSLCouldNotDecryptCollection($this->getConfig());
             }
         }
 
@@ -488,8 +489,8 @@ class Driver extends \MongoStar\Model\Driver\DriverAbstract
      */
     private function _getInitializeVector() : string
     {
-        $username = \MongoStar\Config::getConfig()['username'];
-        $method   = \MongoStar\Config::getConfig()['method'];
+        $username = $this->getConfig()['username'];
+        $method   = $this->getConfig()['method'];
 
         $iv = str_split(substr($username, 0, openssl_cipher_iv_length($method)));
 

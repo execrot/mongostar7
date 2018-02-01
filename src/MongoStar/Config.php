@@ -11,14 +11,6 @@ namespace MongoStar;
 class Config
 {
     /**
-     * Format: [
-     *      'driver'   => 'mongodb',
-     *      'server'   => 'localhost:27017',
-     *      'db'       => 'dbname'
-     *      'username' => 'username'
-     *      'password' => 'password'
-     * ]
-     *
      * @var array
      */
     private static $_config = null;

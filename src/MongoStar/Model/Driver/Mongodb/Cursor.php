@@ -35,10 +35,11 @@ class Cursor extends \MongoStar\Model\Driver\CursorAbstract
      *
      * @param \MongoStar\Model $model
      * @param \MongoDB\Driver\Query $query
+     * @param array $config
      */
-    public function __construct(\MongoStar\Model $model, \MongoDB\Driver\Query $query)
+    public function __construct(\MongoStar\Model $model, \MongoDB\Driver\Query $query, array $config = [])
     {
-        parent::__construct($model, []);
+        parent::__construct($model, [], $config);
         $this->_query = $query;
     }
 
@@ -47,8 +48,13 @@ class Cursor extends \MongoStar\Model\Driver\CursorAbstract
      */
     private function _getDataModel() : \MongoStar\Model
     {
-        $data = json_decode(json_encode($this->_iterator->current()), true);
+        $currentItem = $this->_iterator->current();
 
+        if (is_object($currentItem->_id) && $currentItem->_id instanceof \MongoDB\BSON\ObjectID) {
+            $currentItem->_id = (string)$currentItem->_id;
+        }
+
+        $data = json_decode(json_encode($currentItem), true);
         $modelClassName = $this->getModel()->getModelClassName();
 
         /** @var \MongoStar\Model $model */
@@ -186,7 +192,7 @@ class Cursor extends \MongoStar\Model\Driver\CursorAbstract
     public function processDataRow(array $data) : array
     {
         if (isset($data['_id'])) {
-            $data['id'] = $data['_id']['$oid'];
+            $data['id'] = $data['_id'];
             unset($data['_id']);
         }
 
@@ -199,7 +205,7 @@ class Cursor extends \MongoStar\Model\Driver\CursorAbstract
     public function getCollectionNamespace() : string
     {
         return implode('.', [
-            \MongoStar\Config::getConfig()['db'],
+            $this->getConfig()['db'],
             $this->getModel()->getMeta()->getCollection()
         ]);
     }
@@ -210,7 +216,7 @@ class Cursor extends \MongoStar\Model\Driver\CursorAbstract
      */
     private function _executeQuery(\MongoDB\Driver\Query $query) : \MongoDB\Driver\Cursor
     {
-        $manager = Driver::getManager();
+        $manager = $this->getModel()->getManager();
 
         return $manager->executeQuery(
             $this->getCollectionNamespace(),

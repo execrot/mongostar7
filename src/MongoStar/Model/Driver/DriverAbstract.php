@@ -16,6 +16,28 @@ abstract class DriverAbstract
     private $_model = null;
 
     /**
+     * @var array
+     */
+    private $_config = null;
+
+    /**
+     * Driver constructor.
+     * @param array $config
+     */
+    public function __construct(array $config = [])
+    {
+        $this->_config = $config;
+    }
+
+    /**
+     * @return array
+     */
+    public function getConfig()
+    {
+        return $this->_config;
+    }
+
+    /**
      * @param \MongoStar\Model $model
      */
     public function setModel(\MongoStar\Model $model)

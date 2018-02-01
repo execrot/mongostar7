@@ -11,18 +11,20 @@ namespace MongoStar\Model\Driver\Mongodb;
 class Driver extends \MongoStar\Model\Driver\DriverAbstract
 {
     /**
-     * @var \MongoDB\Driver\Manager
+     * @var \MongoDB\Driver\Manager[]
      */
-    private static $_manager = null;
+    private $_manager = null;
 
     /**
      * @return \MongoDB\Driver\Manager
      */
-    public static function getManager() : \MongoDB\Driver\Manager
+    public function getManager() : \MongoDB\Driver\Manager
     {
-        if (!self::$_manager) {
+        $managerConfigKey = md5(var_export([], true));
 
-            $config = \MongoStar\Config::getConfig();
+        if (empty($this->_manager[$managerConfigKey])) {
+
+            $config = $this->getConfig();
 
             $credentials = null;
             if (isset($config['username']) && isset($config['password'])) {
@@ -44,10 +46,10 @@ class Driver extends \MongoStar\Model\Driver\DriverAbstract
 
             $connection = 'mongodb://' . $credentials . $servers . $replicaSetName;
 
-            self::$_manager = new \MongoDB\Driver\Manager($connection);
+            $this->_manager[$managerConfigKey] = new \MongoDB\Driver\Manager($connection);
         }
 
-        return self::$_manager;
+        return $this->_manager[$managerConfigKey];
     }
 
     /**
@@ -56,7 +58,7 @@ class Driver extends \MongoStar\Model\Driver\DriverAbstract
     public function getCollectionNamespace()
     {
         return implode('.', [
-            \MongoStar\Config::getConfig()['db'],
+            $this->getConfig()['db'],
             $this->getModel()->getMeta()->getCollection()
         ]);
     }
@@ -66,15 +68,14 @@ class Driver extends \MongoStar\Model\Driver\DriverAbstract
      */
     public function save()
     {
-        $manager = self::getManager();
-
         $bulk = new \MongoDB\Driver\BulkWrite();
-        $data = $this->getModel()->getData();
+
+        $data = $this->_replaceIdToObjectId(
+            $this->getModel()->getData()
+        );
 
         if ($this->getModel()->id) {
             $cond = $this->_replaceIdToObjectId(['id' => $this->getModel()->id]);
-            $data = $this->_replaceIdToObjectId($data);
-
             $bulk->update($cond, ['$set' => $data], ['multi' => true, 'upsert' => false]);
         }
         else {
@@ -85,7 +86,7 @@ class Driver extends \MongoStar\Model\Driver\DriverAbstract
             \MongoDB\Driver\WriteConcern::MAJORITY, 1000
         );
 
-        $result = $manager->executeBulkWrite(
+        $result = $this->getManager()->executeBulkWrite(
             $this->getCollectionNamespace(), $bulk, $writeConcern
         );
 
@@ -124,7 +125,7 @@ class Driver extends \MongoStar\Model\Driver\DriverAbstract
             \MongoDB\Driver\WriteConcern::MAJORITY, 100
         );
 
-        $result = self::getManager()->executeBulkWrite(
+        $result = $this->getManager()->executeBulkWrite(
             $this->getCollectionNamespace(), $bulk, $writeConcern
         );
 
@@ -147,7 +148,7 @@ class Driver extends \MongoStar\Model\Driver\DriverAbstract
             'sort' => $sort
         ]);
 
-        $cursor = new Cursor($this->getModel(), $query);
+        $cursor = new Cursor($this->getModel(), $query, $this->getConfig());
 
         if ($cursor->count() < 1) {
             return null;
@@ -175,7 +176,7 @@ class Driver extends \MongoStar\Model\Driver\DriverAbstract
             'limit' => $count
         ]);
 
-        return new Cursor($this->getModel(), $query);
+        return new Cursor($this->getModel(), $query, $this->getConfig());
     }
 
     /**
@@ -191,9 +192,9 @@ class Driver extends \MongoStar\Model\Driver\DriverAbstract
             "query" => $cond
         ]);
 
-        $manager = self::getManager();
-
-        $cursor = $manager->executeCommand(\MongoStar\Config::getConfig()['db'], $command);
+        $cursor = $this
+            ->getManager()
+            ->executeCommand($this->getConfig()['db'], $command);
 
         try {
             $res = current($cursor->toArray());
@@ -211,8 +212,6 @@ class Driver extends \MongoStar\Model\Driver\DriverAbstract
      */
     public function batchInsert(array $data = null) : int
     {
-        $manager = self::getManager();
-
         $bulk = new \MongoDB\Driver\BulkWrite();
 
         foreach ($data as $dataItem) {
@@ -230,7 +229,7 @@ class Driver extends \MongoStar\Model\Driver\DriverAbstract
 
             $collectionNamespace = $this->getCollectionNamespace();
 
-            $writeResults = $manager->executeBulkWrite($collectionNamespace, $bulk);
+            $writeResults = $this->getManager()->executeBulkWrite($collectionNamespace, $bulk);
             return $writeResults->getInsertedCount();
         }
 
